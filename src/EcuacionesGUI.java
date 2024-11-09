@@ -11,6 +11,7 @@ public class EcuacionesGUI extends JFrame {
     private JTextField[] terminosIndependientesFields;
     private JButton resolverButton;
     private JTextArea resultadoArea;
+    private JComboBox<String> metodoComboBox;
 
     public EcuacionesGUI() {
         setTitle("Sistema de Ecuaciones Lineales");
@@ -18,7 +19,6 @@ public class EcuacionesGUI extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
-        // Panel para ingresar el número de ecuaciones e incógnitas
         JPanel configuracionPanel = new JPanel(new FlowLayout());
         configuracionPanel.add(new JLabel("Número de Ecuaciones:"));
         numEcuacionesField = new JTextField(5);
@@ -30,13 +30,17 @@ public class EcuacionesGUI extends JFrame {
 
         JButton generarMatrizButton = new JButton("Generar Matriz");
         configuracionPanel.add(generarMatrizButton);
+
+        // ComboBox para elegir el método de resolución
+        metodoComboBox = new JComboBox<>(new String[]{"Gauss-Jordan", "Cramer"});
+        configuracionPanel.add(new JLabel("Método:"));
+        configuracionPanel.add(metodoComboBox);
+
         add(configuracionPanel, BorderLayout.NORTH);
 
-        // Panel para los coeficientes
         coeficientesPanel = new JPanel();
         add(coeficientesPanel, BorderLayout.CENTER);
 
-        // Panel de resultados
         JPanel resultadoPanel = new JPanel(new BorderLayout());
         resolverButton = new JButton("Resolver");
         resultadoPanel.add(resolverButton, BorderLayout.NORTH);
@@ -47,21 +51,8 @@ public class EcuacionesGUI extends JFrame {
 
         add(resultadoPanel, BorderLayout.SOUTH);
 
-        // Acción para generar la matriz de coeficientes
-        generarMatrizButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                generarCamposCoeficientes();
-            }
-        });
-
-        // Acción para resolver el sistema de ecuaciones
-        resolverButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                resolverSistema();
-            }
-        });
+        generarMatrizButton.addActionListener(e -> generarCamposCoeficientes());
+        resolverButton.addActionListener(e -> resolverSistema());
     }
 
     private void generarCamposCoeficientes() {
@@ -93,7 +84,6 @@ public class EcuacionesGUI extends JFrame {
         double[][] coeficientes = new double[numEcuaciones][numIncognitas];
         double[] terminosIndependientes = new double[numEcuaciones];
 
-        // Obtener valores de los campos de texto
         for (int i = 0; i < numEcuaciones; i++) {
             for (int j = 0; j < numIncognitas; j++) {
                 coeficientes[i][j] = Double.parseDouble(coeficientesFields[i][j].getText());
@@ -101,16 +91,25 @@ public class EcuacionesGUI extends JFrame {
             terminosIndependientes[i] = Double.parseDouble(terminosIndependientesFields[i].getText());
         }
 
-        // Crear una instancia del solucionador de sistemas de ecuaciones y resolver
-        SistemaEcuaciones sistema = new SistemaEcuaciones(coeficientes, terminosIndependientes);
-        double[] soluciones = sistema.resolverConGaussJordan(); // Puedes cambiar al método de Cramer si lo deseas
+        String metodo = (String) metodoComboBox.getSelectedItem();
+        ResolverSistema solucionador;
 
-        // Mostrar resultados
-        StringBuilder resultado = new StringBuilder("Soluciones:\n");
-        for (int i = 0; i < soluciones.length; i++) {
-            resultado.append("I").append(i + 1).append(" = ").append(soluciones[i]).append("\n");
+        if ("Gauss-Jordan".equals(metodo)) {
+            solucionador = new ResolucionGaussJordan();
+        } else {
+            solucionador = new ResolucionCramer();
         }
-        resultadoArea.setText(resultado.toString());
+
+        try {
+            double[] soluciones = solucionador.resolver(coeficientes, terminosIndependientes);
+            StringBuilder resultado = new StringBuilder("Soluciones:\n");
+            for (int i = 0; i < soluciones.length; i++) {
+                resultado.append("I").append(i + 1).append(" = ").append(soluciones[i]).append("\n");
+            }
+            resultadoArea.setText(resultado.toString());
+        } catch (IllegalArgumentException ex) {
+            resultadoArea.setText("Error: " + ex.getMessage());
+        }
     }
 
     public static void main(String[] args) {
@@ -120,4 +119,3 @@ public class EcuacionesGUI extends JFrame {
         });
     }
 }
-
